@@ -35,7 +35,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]]const char **argv)
     //                                                            true,// show help if requested
     //                                                            "Naval Fate 2.0");// version string
 
-    // for (auto const &arg : args) {
+    // for (auto const &arg :args) {
     //     std::cout << arg.first << arg.second << std::endl;
     // }
 
@@ -66,6 +66,8 @@ int main([[maybe_unused]] int argc, [[maybe_unused]]const char **argv)
     bool state8(false);
     bool state9(false);
     bool state10(false);
+    bool state11(false);    
+    bool state12(false);
     
     sf::Clock deltaClock;
     while (window.isOpen()) {
@@ -89,15 +91,17 @@ int main([[maybe_unused]] int argc, [[maybe_unused]]const char **argv)
         ImGui::Checkbox(" 0: The Plan", &state0);
      
         ImGui::Checkbox(" 1: Getting Started", &state1);
-        ImGui::Checkbox(" 2: C++ 20 So Far", &state2);
-        ImGui::Checkbox(" 3: Reading SFML Input States", &state3);
-        ImGui::Checkbox(" 4: Managing Game State", &state4);
-        ImGui::Checkbox(" 5: Making Our Game Testable", &state5);
-        ImGui::Checkbox(" 6: Making Game State Allocator Aware", &state6);
-        ImGui::Checkbox(" 7: Add logging To Game Engine", &state7);
-        ImGui::Checkbox(" 8: Draw A Game Map", &state8);
-        ImGui::Checkbox(" 9: Dialog Trees", &state9);
-        ImGui::Checkbox("10: Porting From SFML to SDL", &state10);
+        ImGui::Checkbox(" 2: Finding Errors as soon as possible", &state2);
+        ImGui::Checkbox(" 3: Handling Command Line Paramenters", &state3);
+        ImGui::Checkbox(" 4: C++ 20 So Far", &state4);
+        ImGui::Checkbox(" 5: Reading SFML Input States", &state5);
+        ImGui::Checkbox(" 6: Managing Game State", &state6);
+        ImGui::Checkbox(" 7: Making Our Game Testable", &state7);
+        ImGui::Checkbox(" 8: Making Game State Allocator Aware", &state8);
+        ImGui::Checkbox(" 9: Add logging To Game Engine", &state9);
+        ImGui::Checkbox("10: Draw A Game Map", &state10);
+        ImGui::Checkbox("11: Dialog Trees", &state11);
+        ImGui::Checkbox("12: Porting From SFML to SDL", &state12);
 
         ImGui::End();
 
