@@ -1,0 +1,5 @@
+* Links
+** Videos
+  - https://www.youtube.com/watch?v=kwFcRvxy0D0&list=PLs3KjaCtOwSZ-74ryhrQQkqr8kZW50_mZ
+** Libraries
+  - SFML: https://www.sfml-dev.org/documentation/2.5.1/

@@ -1,4 +1,6 @@
+#include <SFML/Window/Joystick.hpp>
 #include <iostream>
+#include <array>
 
 #include <spdlog/spdlog.h>
 #include <imgui.h>
@@ -11,72 +13,177 @@
 
 
 static constexpr auto USAGE =
-    R"(Naval Fate.
+    R"(game.
 
     Usage:
-          naval_fate ship new <name>...
-          naval_fate ship <name> move <x> <y> [--speed=<kn>]
-          naval_fate ship shoot <x> <y>
-          naval_fate mine (set|remove) <x> <y> [--moored | --drifting]
-          naval_fate (-h | --help)
-          naval_fate --version
- Options:
-          -h --help     Show this screen.
-          --version     Show version.
-          --speed=<kn>  Speed in knots [default: 10].
-          --moored      Moored (anchored) mine.
-          --drifting    Drifting mine.
+          game [options]
+
+     Options:
+          -h --help          Show this screen.
+          --width=WIDTH      Screen width in pixels [default: 1024]
+          --height=HEIGHT    Screen height in pixels [default: 768]
+          --scale=SCALE      Scaling factor [default: 2]
 )";
+
+
+struct Joystick
+{
+    unsigned int id;
+    std::string name;
+    std::array<bool, sf::Joystick::ButtonCount> buttonState;
+    std::array<float, sf::Joystick::AxisCount> axisPosition;
+
+    Joystick( unsigned int _id, std::string _name)
+        : id(_id), name(_name)
+        {}
+};
+
+Joystick loadJoystick(unsigned int id)
+{
+    const auto identification = sf::Joystick::getIdentification(id);
+    return Joystick(id, static_cast<std::string>(identification.name));
+}
+
+Joystick &joystickById(std::vector<Joystick> &joysticks, unsigned int id)
+{
+    auto joystick = std::find_if(begin(joysticks), end(joysticks), [id](const auto &j) {return j.id == id;});
+    
+    if (joystick == joysticks.end())
+    {
+        joysticks.push_back(loadJoystick(id));
+        return joysticks.back();
+    }
+    else
+    {
+        return *joystick;
+    }
+}
 
 int main([[maybe_unused]] int argc, [[maybe_unused]]const char **argv)
 {
-    // std::map<std::string, docopt::value> args = docopt::docopt(USAGE,
-    //                                                            { std::next(argv), std::next(argv, argc) },
-    //                                                            true,// show help if requested
-    //                                                            "Naval Fate 2.0");// version string
-
-    // for (auto const &arg :args) {
-    //     std::cout << arg.first << arg.second << std::endl;
-    // }
+    std::map<std::string, docopt::value> args = docopt::docopt(USAGE,
+                                                               { std::next(argv), std::next(argv, argc) },
+                                                               true,          // show help if requested
+                                                               "game 0.3");   // version string
 
 
     //Use the default logger (stdout, multi-threaded, colored)
+    spdlog::set_level(spdlog::level::debug);
     spdlog::info("Starting ImGUI + SFML");
 
     fmt::print("Hello, from {}\n", "{fmt}");
 
-    sf::RenderWindow window(sf::VideoMode(1024, 760), "ImGui + SFML = <3");
+    
+    const auto width = args["--width"].asLong();
+    const auto height = args["--height"].asLong();
+    const auto scale = args["--scale"].asLong();
+
+    if (width < 0 || height < 0 || scale < 1 || scale > 5)
+    {
+        spdlog::error("Command line options out of reasoble range.");
+        for (auto const & arg : args )
+        {
+            if (arg.second.isString()) {
+                spdlog::info("Parameter set {}='{}'", arg.first, arg.second.asString());
+            }
+        }
+        abort();
+    }
+
+
+    sf::RenderWindow window(sf::VideoMode(static_cast<unsigned int>(width), 
+                                          static_cast<unsigned int>(height)
+                                ), 
+                            "ImGui + SFML = <3");
     window.setFramerateLimit(60);
     ImGui::SFML::Init(window);
 
-    constexpr double scale_factor = 1.2f;
+    const auto scale_factor = static_cast<float>(scale);
     ImGui::GetStyle().ScaleAllSizes(scale_factor);
     ImGui::GetIO().FontGlobalScale = scale_factor;
 
 
-    // game status - keep outside of the main loop
-    bool state0(false);
-    bool state1(false);
-    bool state2(false);
-    bool state3(false);
-    bool state4(false);
-    bool state5(false);
-    bool state6(false);
-    bool state7(false);
-    bool state8(false);
-    bool state9(false);
-    bool state10(false);
-    bool state11(false);    
-    bool state12(false);
+    // requires c++-17
+    constexpr std::array steps = {
+        "The Plan",
+        "Getting Started",
+        "Finding Errors as soon as possible",
+        "Handling Command Line Paramenters",
+        "Reading SFML Joystick States",
+        "Reading SFML Keyboard States",
+        "Reading SFML Mouse States",
+        "Reading SFML Touchscreen States",
+        "C++ 20 So Far",
+        "Managing Game State",
+        "Making Our Game Testable",
+        "Making Game State Allocator Aware",
+        "Add logging To Game Engine",
+        "Draw A Game Map",
+        "Dialog Trees",
+        "Porting From SFML to SDL"};
+
+    std::array<bool, steps.size()> states{};
+
     
     sf::Clock deltaClock;
-    while (window.isOpen()) {
+
+    std::vector<Joystick> joysticks;
+    bool joystickEvent = false;
+    
+    while (window.isOpen())
+    {
         sf::Event event;
-        while (window.pollEvent(event)) {
+        while (window.pollEvent(event))
+        {
             ImGui::SFML::ProcessEvent(event);
 
-            if (event.type == sf::Event::Closed) {
+            switch (event.type)
+            {
+            case sf::Event::Closed:
+            {
                 window.close();
+                break;
+            }
+            case sf::Event::JoystickConnected:
+            {
+                joystickEvent = true;
+                break;
+            }
+            case sf::Event::JoystickDisconnected:
+            {
+                joystickEvent = true;                
+                break;
+            }
+            case sf::Event::JoystickButtonPressed: 
+            {
+                joystickEvent = true;
+
+                auto &js = joystickById(joysticks, event.joystickButton.joystickId);
+                js.buttonState[event.joystickButton.button] = true;
+
+                break;
+            }
+            case sf::Event::JoystickButtonReleased: 
+            {
+                joystickEvent = true;
+
+                auto &js = joystickById(joysticks, event.joystickButton.joystickId);
+                js.buttonState[event.joystickButton.button] = false;
+
+                break;
+            }
+            case sf::Event::JoystickMoved: 
+            {
+                joystickEvent = true;
+
+                auto &js = joystickById(joysticks, event.joystickMove.joystickId);
+                js.axisPosition[event.joystickMove.axis] = event.joystickMove.position; 
+
+                break;
+            }
+
+            default:
+                spdlog::trace("Undhandled Event Type");
             }
         }
 
@@ -85,26 +192,29 @@ int main([[maybe_unused]] int argc, [[maybe_unused]]const char **argv)
 //    ImGui::ShowDemoWindow();
 
         ImGui::Begin("The Plan");
-        ImGui::Button("Look at this pretty button");
 
-
-        ImGui::Checkbox(" 0: The Plan", &state0);
-     
-        ImGui::Checkbox(" 1: Getting Started", &state1);
-        ImGui::Checkbox(" 2: Finding Errors as soon as possible", &state2);
-        ImGui::Checkbox(" 3: Handling Command Line Paramenters", &state3);
-        ImGui::Checkbox(" 4: C++ 20 So Far", &state4);
-        ImGui::Checkbox(" 5: Reading SFML Input States", &state5);
-        ImGui::Checkbox(" 6: Managing Game State", &state6);
-        ImGui::Checkbox(" 7: Making Our Game Testable", &state7);
-        ImGui::Checkbox(" 8: Making Game State Allocator Aware", &state8);
-        ImGui::Checkbox(" 9: Add logging To Game Engine", &state9);
-        ImGui::Checkbox("10: Draw A Game Map", &state10);
-        ImGui::Checkbox("11: Dialog Trees", &state11);
-        ImGui::Checkbox("12: Porting From SFML to SDL", &state12);
+        // for_init this will only work in C++20
+        for (std::size_t index = 0; const auto &step : steps)
+        {
+            ImGui::Checkbox(fmt::format("{} : {}", index, step).c_str(),&states.at(index));
+            ++index;
+        }
 
         ImGui::End();
 
+        ImGui::Begin("Joystick");
+        
+        ImGui::TextUnformatted(fmt::format("JS Event: {}", joystickEvent).c_str());
+
+        if (!joysticks.empty())
+        {
+            for (std::size_t button = 0; button < sf::Joystick::ButtonCount; ++button)
+            {
+                ImGui::TextUnformatted(fmt::format("{}: {}", button, joysticks[0].buttonState[button]).c_str());
+            }
+        }
+        ImGui::End();
+        
         window.clear();
         ImGui::SFML::Render(window);
         window.display();
