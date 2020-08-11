@@ -1,4 +1,5 @@
 #include <SFML/Window/Joystick.hpp>
+#include <bits/c++config.h>
 #include <iostream>
 #include <array>
 
@@ -10,7 +11,11 @@
 #include <SFML/Window/Event.hpp>
 
 #include <docopt/docopt.h>
+#include <type_traits>
 
+
+#include "Input.hpp"
+#include "ImGuiHelpers.hpp"
 
 static constexpr auto USAGE =
     R"(game.
@@ -22,42 +27,9 @@ static constexpr auto USAGE =
           -h --help          Show this screen.
           --width=WIDTH      Screen width in pixels [default: 1024]
           --height=HEIGHT    Screen height in pixels [default: 768]
-          --scale=SCALE      Scaling factor [default: 2]
+          --scale=SCALE      Scaling factor [default: 1]
 )";
 
-
-struct Joystick
-{
-    unsigned int id;
-    std::string name;
-    std::array<bool, sf::Joystick::ButtonCount> buttonState;
-    std::array<float, sf::Joystick::AxisCount> axisPosition;
-
-    Joystick( unsigned int _id, std::string _name)
-        : id(_id), name(_name)
-        {}
-};
-
-Joystick loadJoystick(unsigned int id)
-{
-    const auto identification = sf::Joystick::getIdentification(id);
-    return Joystick(id, static_cast<std::string>(identification.name));
-}
-
-Joystick &joystickById(std::vector<Joystick> &joysticks, unsigned int id)
-{
-    auto joystick = std::find_if(begin(joysticks), end(joysticks), [id](const auto &j) {return j.id == id;});
-    
-    if (joystick == joysticks.end())
-    {
-        joysticks.push_back(loadJoystick(id));
-        return joysticks.back();
-    }
-    else
-    {
-        return *joystick;
-    }
-}
 
 int main([[maybe_unused]] int argc, [[maybe_unused]]const char **argv)
 {
@@ -110,6 +82,8 @@ int main([[maybe_unused]] int argc, [[maybe_unused]]const char **argv)
         "Finding Errors as soon as possible",
         "Handling Command Line Paramenters",
         "Reading SFML Joystick States",
+        "Displaying SFML Joystick States",
+        "Dealing With Game Event",
         "Reading SFML Keyboard States",
         "Reading SFML Mouse States",
         "Reading SFML Touchscreen States",
@@ -127,7 +101,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]]const char **argv)
     
     sf::Clock deltaClock;
 
-    std::vector<Joystick> joysticks;
+    std::vector<Game::Joystick> joysticks;
     bool joystickEvent = false;
     
     while (window.isOpen())
@@ -181,7 +155,6 @@ int main([[maybe_unused]] int argc, [[maybe_unused]]const char **argv)
 
                 break;
             }
-
             default:
                 spdlog::trace("Undhandled Event Type");
             }
@@ -208,10 +181,19 @@ int main([[maybe_unused]] int argc, [[maybe_unused]]const char **argv)
 
         if (!joysticks.empty())
         {
-            for (std::size_t button = 0; button < sf::Joystick::ButtonCount; ++button)
+            for (std::size_t button = 0; button < joysticks[0].buttonCount; ++button)
             {
-                ImGui::TextUnformatted(fmt::format("{}: {}", button, joysticks[0].buttonState[button]).c_str());
+                ImGuiHelper::Text("{}: {}", button, joysticks[0].buttonState[button]);
             }
+
+            for( std::size_t axis = 0; axis < sf::Joystick::AxisCount; ++axis )
+            {
+                ImGuiHelper::Text("{}: {}",
+                                  Game::toString(static_cast<sf::Joystick::Axis>(axis)),
+                                  joysticks[0].axisPosition[axis]);
+
+            }
+            
         }
         ImGui::End();
         
